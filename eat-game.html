@@ -1,27 +1,36 @@
 <html>
-  <head>
+	<head>
 		<script src="./eat-lyrics.js" type="text/javascript"></script>
 		<script type="text/javascript">
-			var pairwise = {};
-			for (i = 0; i < lyrics.length; i++) {
-				var lines = lyrics[i].lines;
-				for (j = 0; j < lines.length; j++) {
-					var words = lines[j].split(" ");
-					
-					for (k = 0; k < words.length - 1; k++) {
-						var pair = words[k] + " " + words[k+1];
-						if (pair in pairwise) {
-							if (pairwise[pair].indexOf(lyrics[i].title) < 0) {
-								pairwise[pair].push(lyrics[i].title);
+			var count = 2;
+			
+			var populate = function(grams) {
+				var reverseIndex = {};
+				for (i = 0; i < lyrics.length; i++) {
+					var lines = lyrics[i].lines;
+					for (j = 0; j < lines.length; j++) {
+						var words = lines[j].split(" ");
+						
+						for (k = 0; k < words.length - (grams - 1); k++) {
+							var groupArr = words.slice(k, k + grams);
+							var group = ("" + groupArr).replace(/,/g, " ");
+							
+							if (group in reverseIndex) {
+								if (reverseIndex[group].indexOf(lyrics[i].title) < 0) {
+									reverseIndex[group].push(lyrics[i].title);
+								}
 							}
-						}
-						else {
-							pairwise[pair] = [lyrics[i].title];
+							else {
+								reverseIndex[group] = [lyrics[i].title];
+							}
 						}
 					}
 				}
-			}
+				return reverseIndex;
+			};
+			reverseIndex = populate(count);
 			
+			//via http://stackoverflow.com/questions/2532218/pick-random-property-from-a-javascript-object
 			var randomProperty = function (obj) {
 			    var keys = Object.keys(obj)
 			    return keys[ keys.length * Math.random() << 0];
@@ -36,27 +45,54 @@
 			var setText = function (id, text) {
 				var y = document.getElementById(id);
 				y.innerHTML = text;
-			}
+			};
+			var reset = function() {
+				reverseIndex = populate(count);
+				key = randomProperty(reverseIndex);
+				value = reverseIndex[key];
+				plural = value.length > 1 ? "s" : "";
+				
+				setText("countBox", count);
+				setText("pluralBox", plural);
+				setText("phraseBox", key);
+				setText("answer", "<a onclick=\"setText('answer', 'A: ' + prettyPrint(value))\" href=\"javascript:void(0)\">Click here for the answer</a>");
+				if (count < 8) {
+					setText("moreBox", "<a onclick=\"count++; reset();\" href=\"javascript:void(0)\">Try with " + (count + 1) + " words</a>");
+				}
+				else {
+					setText("moreBox", "&nbsp;");
+				}
+				if (count > 2) {
+					setText("lessBox", "<a onclick=\"count--; reset();\" href=\"javascript:void(0)\">Try with " + (count - 1) + " words</a>");
+				}
+				else {
+					setText("lessBox", "&nbsp;");
+				}
+			};
 		</script>
 	</head>
 	<body>
-		<script>
-			var key = randomProperty(pairwise);
-			var value = pairwise[key];
-			var plural = value.length > 1 ? "s" : ""; 
-		</script>
 		<table align="center">
 		<th>
-			<h1>The Eagle and Talon 2-gram Game</h1>
+			<h1>The Eagle and Talon <span id="countBox"></span>-word Game</h1>
 		</th>
 		<tr><td>
-		In what song<script>document.write(plural)</script> did the phrase "<script>
-			document.write(key);
-		</script>" appear?</td></tr>
+		In what song<span id="pluralBox"></span> did the phrase "<span id="phraseBox"></span>" appear?</td></tr>
 		<tr><td id="answer">
 		<a onclick="setText('answer', 'A: ' + prettyPrint(value))" href="javascript:void(0)">Click here for the answer</a>
 		</td></tr>
-		<tr><td>(Reload for another round)</td></tr>
+		<tr height="10"/>
+		<tr><td>
+		<table width="100%" border="2">
+		<tr>
+		<td align="center" width="33%" id="moreBox"></td>
+		<td align="center" width="33%"><a onclick="reset()" href="javascript:void(0)">Play again</a></td>
+		<td align="center" id="lessBox"></td>
+		</td></tr>
 		</table>
+		</table>
+		<script>
+			reset();
+		</script>
 	</body>
 </html>
